@@ -38,6 +38,11 @@ public class Pms3GWeeklyReport {
 	protected Vector<Vector<String>> vtDataStatic = new Vector<Vector<String>>();
 	protected Vector<Vector<String>> vtDataWeek = new Vector<Vector<String>>();
 	private int colEnd;
+	private int rowStartSecondTable;
+	private String[] arrCriteria1 = new String[] { "Number of Cells", "Target", "KPI average", "Critical : (<=90%)", "Major   : (90-95%)", "Minor   : (95-98%)", "Normal : (98-100%)" };
+	private String[] arrCriteria2 = new String[] { "Number of Cells", "Target", "KPI average", "Critical : (>=15%)", "Major   : (10-15%)", "Minor   : (5-10%)", "Normal : (0-5%)" };
+	private String[] arrCriteria3 = new String[] { "Number of Cells", "KPI average" };
+	private String[] arrCriteria4 = new String[] { "Number of Node B", "Target", "KPI average", "Critical : (>=100%)", "Major   : (85-100%)", "Minor   : (30-85%)", "Normal : (0-30%)" };
 
 	/**
 	 * 
@@ -154,7 +159,8 @@ public class Pms3GWeeklyReport {
 	private void createSheet(WorkBook workBook, int sheetType, int sheetNumber) throws Exception {
 
 		workBook.setSheet(sheetNumber);
-		fillAverageData(workBook, sheetType, sheetNumber);
+		initFirstTable(workBook, sheetType, sheetNumber);
+		initSecondTable(workBook, sheetType, sheetNumber);
 		workBook.setColHidden(colEnd + 2, true);
 		workBook.setColHidden(colEnd + 3, true);
 
@@ -166,7 +172,7 @@ public class Pms3GWeeklyReport {
 	 * @param sheetType
 	 * @throws Exception
 	 */
-	private void fillAverageData(WorkBook workBook, int sheetType, int sheetNumber) throws Exception {
+	private void initFirstTable(WorkBook workBook, int sheetType, int sheetNumber) throws Exception {
 
 		Util.putPosition(ReportConfig.lstReportKpi, sheetType, Util.ROW_AVG_START, Util.ROW_AVG_NEXT);
 		SmartUtil.mergeCells(workBook, Util.ROW_AVG_START - 1, 1, Util.ROW_AVG_START - 1, 2, true);
@@ -176,7 +182,7 @@ public class Pms3GWeeklyReport {
 		workBook.setText(Util.ROW_AVG_START - 1, colEnd + 1, "Weekly average");
 		SmartUtil.setDefaultStyle(workBook, Util.ROW_AVG_START - 1, 1, Util.ROW_AVG_START - 1, colEnd + 1);
 		SmartUtil.fillColorPatten(workBook, Util.ROW_AVG_START - 1, 1, Util.ROW_AVG_START - 1, colEnd + 1, Color.LIGHT_GRAY.getRGB());
-		fillData(workBook, sheetType, sheetNumber);
+		fillDataForFirstTable(workBook, sheetType, sheetNumber);
 		SmartUtil.setFullBorder(workBook, Util.ROW_AVG_START - 1, 1, Util.ROW_AVG_START + 3 * ReportConfig.getNumOfKPI(sheetType) - 1, colEnd + 1, RangeStyle.BorderThin);
 		workBook.setSelection(Util.ROW_AVG_START - 1, 1, Util.ROW_AVG_START - 1, colEnd + 1);
 		workBook.autoFilter();
@@ -189,7 +195,7 @@ public class Pms3GWeeklyReport {
 	 * @throws Exception
 	 */
 
-	private void fillData(WorkBook workBook, int sheetType, int sheetNumber) throws Exception {
+	private void fillDataForFirstTable(WorkBook workBook, int sheetType, int sheetNumber) throws Exception {
 
 		int allNumberSeries = 0;
 		int hwNumberSeries = 0;
@@ -301,13 +307,282 @@ public class Pms3GWeeklyReport {
 			}
 		}
 
-		// fill data for table Weekly KPI statistics
-		int rowHeader3 = allChart.getSeriesCount() * 3 + Util.ROW_AVG_START;
-		workBook.setText(rowHeader3, 0, "III. Weekly KPI statistics");
-		RangeStyle rangeStyle = workBook.getRangeStyle(rowHeader3, 0, rowHeader3, 0);
-		SmartUtil.adjustFont(rangeStyle, 0, true, false, false);
-		workBook.setRangeStyle(rangeStyle, rowHeader3, 0, rowHeader3, 0);
+		rowStartSecondTable = allChart.getSeriesCount() * 3 + Util.ROW_AVG_START;
 
+	}
+
+	/**
+	 * 
+	 * @param workBook
+	 * @param sheetType
+	 * @throws Exception
+	 */
+	private void initSecondTable(WorkBook workBook, int sheetType, int sheetNumber) throws Exception {
+
+		workBook.setText(rowStartSecondTable - 2, 0, "III. Weekly KPI statistics");
+		RangeStyle rangeStyle = workBook.getRangeStyle(rowStartSecondTable - 2, 0, rowStartSecondTable - 2, 0);
+		SmartUtil.adjustFont(rangeStyle, 0, true, false, false);
+		workBook.setRangeStyle(rangeStyle, rowStartSecondTable - 2, 0, rowStartSecondTable - 2, 0);
+
+		Util.putPosition(ReportConfig.lstReportKpi, sheetType, rowStartSecondTable + 1, sheetType == 2 ? 6 : 19);
+		// SmartUtil.mergeCells(workBook, Util.ROW_AVG_START - 1, 1, Util.ROW_AVG_START - 1, 2, true);
+		workBook.setText(rowStartSecondTable, 1, "KPI Name");
+		workBook.setText(rowStartSecondTable, 2, "Vendor");
+		workBook.setText(rowStartSecondTable, 3, "Criteria");
+		getColHeaderEnd(workBook, rowStartSecondTable, 4, strWeek, strDate);
+		workBook.setText(rowStartSecondTable, colEnd + 1, "Weekly average");
+		SmartUtil.setDefaultStyle(workBook, rowStartSecondTable, 1, rowStartSecondTable, colEnd + 1);
+		SmartUtil.fillColorPatten(workBook, rowStartSecondTable, 1, rowStartSecondTable, colEnd + 1, Color.LIGHT_GRAY.getRGB());
+		fillDataForSecondTable(workBook, sheetType, sheetNumber);
+
+		SmartUtil.setFullBorder(workBook, rowStartSecondTable, 1, rowStartSecondTable + (sheetType == 2 ? 6 : 19) * ReportConfig.getNumOfKPI(sheetType), colEnd + 1, RangeStyle.BorderThin);
+		workBook.setSelection(rowStartSecondTable, 1, rowStartSecondTable, colEnd + 1);
+		workBook.autoFilter();
+	}
+
+	private void fillDataForSecondTable(WorkBook workBook, int sheetType, int sheetNumber) throws Exception {
+
+		for (int i = 0; i < vtDataPerHour.size(); i++) {
+			Vector<String> vtRow = (Vector<String>) vtDataPerHour.get(i);
+			String kpiCode = (String) vtRow.get(vtRow.size() - 2);
+			Integer row = Util.getPosition(kpiCode, sheetType);
+			if (row != null) {
+
+				workBook.setText(row, 1, ReportConfig.mapKpiName.get(kpiCode));
+
+				SmartUtil.mergeCells(workBook, row, 1, row + (sheetType == 2 ? 5 : 18), 1, true);
+				SmartUtil.setStyleString(workBook, row, 1, row + (sheetType == 2 ? 5 : 18), 1);
+				workBook.setText(row, 2, "All Network");
+				SmartUtil.mergeCells(workBook, row, 2, row + (sheetType == 2 ? 1 : 6), 2, true);
+				SmartUtil.setStyleString(workBook, row, 2, row + (sheetType == 2 ? 1 : 6), 2);
+
+				if (sheetType != 2) {
+					workBook.setRowOutlineLevel(row + 3, row + 18, 1, true);
+				}
+				if (sheetType == 1 && Float.parseFloat(vtRow.get(0)) > 90) {
+
+					for (int j = 0; j < arrCriteria1.length; j++) {
+
+						workBook.setText(row + j, 3, arrCriteria1[j]);
+						SmartUtil.setStyleString(workBook, row + j, 3, row + j, 3);
+
+						if (j != 1 && j != 2) {
+							for (int k = 4; k <= colEnd + 1; k++) {
+
+								workBook.setFormula(
+								        row + j,
+								        k,
+								        "SUMIF(" + workBook.formatRCNr(row + 7, 3, true) + ":" + workBook.formatRCNr(row + 18, 3, true) + "," + workBook.formatRCNr(row + j, 3, true) + ","
+								                + workBook.formatRCNr(row + 7, k, false) + ":" + workBook.formatRCNr(row + 18, k, false) + ")");
+							}
+						}
+					}
+				} else if (sheetType == 1 && Float.parseFloat(vtRow.get(0)) < 5) {
+
+					for (int j = 0; j < arrCriteria2.length; j++) {
+
+						workBook.setText(row + j, 3, arrCriteria2[j]);
+						SmartUtil.setStyleString(workBook, row + j, 3, row + j, 3);
+
+						if (j != 1 && j != 2) {
+							for (int k = 4; k <= colEnd + 1; k++) {
+
+								workBook.setFormula(
+								        row + j,
+								        k,
+								        "SUMIF(" + workBook.formatRCNr(row + 7, 3, true) + ":" + workBook.formatRCNr(row + 18, 3, true) + "," + workBook.formatRCNr(row + j, 3, true) + ","
+								                + workBook.formatRCNr(row + 7, k, false) + ":" + workBook.formatRCNr(row + 18, k, false) + ")");
+							}
+						}
+
+					}
+
+				} else if (sheetType == 2) {
+
+					for (int j = 0; j < arrCriteria3.length; j++) {
+
+						workBook.setText(row + j, 3, arrCriteria3[j]);
+						SmartUtil.setStyleString(workBook, row + j, 3, row + j, 3);
+
+						if (j != 1) {
+							for (int k = 4; k <= colEnd + 1; k++) {
+
+								workBook.setFormula(
+								        row + j,
+								        k,
+								        "SUMIF(" + workBook.formatRCNr(row + 2, 3, true) + ":" + workBook.formatRCNr(row + 5, 3, true) + "," + workBook.formatRCNr(row + j, 3, true) + ","
+								                + workBook.formatRCNr(row + 2, k, false) + ":" + workBook.formatRCNr(row + 5, k, false) + ")");
+							}
+
+						}
+					}
+
+				} else if (sheetType == 3) {
+
+					for (int j = 0; j < arrCriteria4.length; j++) {
+
+						workBook.setText(row + j, 3, arrCriteria4[j]);
+						SmartUtil.setStyleString(workBook, row + j, 3, row + j, 3);
+
+						if (j != 1 && j != 2) {
+							for (int k = 4; k <= colEnd + 1; k++) {
+
+								workBook.setFormula(
+								        row + j,
+								        k,
+								        "SUMIF(" + workBook.formatRCNr(row + 7, 3, true) + ":" + workBook.formatRCNr(row + 18, 3, true) + "," + workBook.formatRCNr(row + j, 3, true) + ","
+								                + workBook.formatRCNr(row + 7, k, false) + ":" + workBook.formatRCNr(row + 18, k, false) + ")");
+							}
+
+						}
+					}
+
+				}
+
+				for (int j = 0; j < vtRow.size() - 2; j++) {
+
+					SmartUtil.setNumber(workBook, row + (sheetType == 2 ? 1 : 2), 4 + j, (String) vtRow.get(j));
+					SmartUtil.setStyleNumber(workBook, row + (sheetType == 2 ? 1 : 2), 4, row + (sheetType == 2 ? 1 : 2), 4 + j);
+				}
+				SmartUtil.setNumber(workBook, row + (sheetType == 2 ? 1 : 2), colEnd + 1, Util.getAverageStringNumber(vtRow));
+				SmartUtil.setStyleNumber(workBook, row + (sheetType == 2 ? 1 : 2), colEnd + 1, row + (sheetType == 2 ? 1 : 2), colEnd + 1);
+
+			}
+
+		}
+
+		for (int i = 0; i < vtDataStatic.size(); i++) {
+
+			Vector<String> vtRow = (Vector<String>) vtDataStatic.get(i);
+			String supplierId = (String) vtRow.get(vtRow.size() - 1);
+			String kpiCode = (String) vtRow.get(vtRow.size() - 2);
+			int typeCode = Integer.parseInt(vtRow.get(vtRow.size() - 3));
+
+			if (typeCode == Util.TYPE_CODE_AVG) {
+				Integer row = Util.getPosition(kpiCode, sheetType);
+
+				if (row != null) {
+
+					String supplierName = supplierId.equals(Util.HUAWEI_TYPE) ? "Huawei" : "Alcatel";
+					for (int j = 0; j < vtRow.size() - 2; j++) {
+
+						if (supplierId.equals(Util.ALCATEL_TYPE)) {
+
+							workBook.setText(row + (sheetType == 2 ? 2 : 7), 2, supplierName);
+							SmartUtil.mergeCells(workBook, row + (sheetType == 2 ? 2 : 7), 2, row + (sheetType == 2 ? 3 : 12), 2, true);
+							SmartUtil.setStyleString(workBook, row + (sheetType == 2 ? 2 : 7), 2, row + (sheetType == 2 ? 3 : 12), 2);
+
+							if (sheetType == 1 && Float.parseFloat(vtRow.get(0)) > 90) {
+
+								for (int k = 0; k < arrCriteria1.length; k++) {
+									if (k != 1) {
+										int rowAlcatel = row + 7 + (k == 0 ? k : k - 1);
+										workBook.setText(rowAlcatel, 3, arrCriteria1[k]);
+										SmartUtil.setStyleString(workBook, rowAlcatel, 3, rowAlcatel, 3);
+									}
+								}
+							} else if (sheetType == 1 && Float.parseFloat(vtRow.get(0)) < 5) {
+
+								for (int k = 0; k < arrCriteria2.length; k++) {
+									if (k != 1) {
+										int rowAlcatel = row + 7 + (k == 0 ? k : k - 1);
+										workBook.setText(rowAlcatel, 3, arrCriteria2[k]);
+										SmartUtil.setStyleString(workBook, rowAlcatel, 3, rowAlcatel, 3);
+									}
+								}
+
+							} else if (sheetType == 2) {
+
+								for (int k = 0; k < arrCriteria3.length; k++) {
+
+									int rowAlcatel = row + 2 + k;
+									workBook.setText(rowAlcatel, 3, arrCriteria3[k]);
+									SmartUtil.setStyleString(workBook, rowAlcatel, 3, rowAlcatel, 3);
+								}
+
+							} else if (sheetType == 3) {
+
+								for (int k = 0; k < arrCriteria4.length; k++) {
+									if (k != 1) {
+										int rowAlcatel = row + 7 + (k == 0 ? k : k - 1);
+										workBook.setText(rowAlcatel, 3, arrCriteria4[k]);
+										SmartUtil.setStyleString(workBook, rowAlcatel, 3, rowAlcatel, 3);
+									}
+								}
+
+							}
+
+							SmartUtil.setNumber(workBook, row + (sheetType == 2 ? 3 : 8), 4 + j, (String) vtRow.get(j));
+							SmartUtil.setStyleNumber(workBook, row + (sheetType == 2 ? 3 : 8), 4, row + (sheetType == 2 ? 3 : 8), 4 + j);
+
+						} else {
+
+							workBook.setText(row + (sheetType == 2 ? 4 : 13), 2, supplierName);
+							SmartUtil.mergeCells(workBook, row + (sheetType == 2 ? 4 : 13), 2, row + (sheetType == 2 ? 5 : 18), 2, true);
+							SmartUtil.setStyleString(workBook, row + (sheetType == 2 ? 4 : 13), 2, row + (sheetType == 2 ? 5 : 18), 2);
+
+							if (sheetType == 1 && Float.parseFloat(vtRow.get(0)) > 90) {
+
+								for (int k = 0; k < arrCriteria1.length; k++) {
+
+									if (k != 1) {
+										int rowHw = row + 13 + (k == 0 ? k : k - 1);
+										workBook.setText(rowHw, 3, arrCriteria1[k]);
+										SmartUtil.setStyleString(workBook, rowHw, 3, rowHw, 3);
+									}
+								}
+							} else if (sheetType == 1 && Float.parseFloat(vtRow.get(0)) < 5) {
+
+								for (int k = 0; k < arrCriteria2.length; k++) {
+
+									if (k != 1) {
+										int rowHw = row + 13 + (k == 0 ? k : k - 1);
+										workBook.setText(rowHw, 3, arrCriteria2[k]);
+										SmartUtil.setStyleString(workBook, rowHw, 3, rowHw, 3);
+									}
+								}
+
+							} else if (sheetType == 2) {
+
+								for (int k = 0; k < arrCriteria3.length; k++) {
+
+									int rowHw = row + 4 + k;
+									workBook.setText(rowHw, 3, arrCriteria3[k]);
+									SmartUtil.setStyleString(workBook, rowHw, 3, rowHw, 3);
+								}
+
+							} else if (sheetType == 3) {
+
+								for (int k = 0; k < arrCriteria4.length; k++) {
+
+									if (k != 1) {
+										int rowHw = row + 13 + (k == 0 ? k : k - 1);
+										workBook.setText(rowHw, 3, arrCriteria4[k]);
+										SmartUtil.setStyleString(workBook, rowHw, 3, rowHw, 3);
+									}
+								}
+
+							}
+
+							SmartUtil.setNumber(workBook, row + (sheetType == 2 ? 5 : 14), 4 + j, (String) vtRow.get(j));
+							SmartUtil.setStyleNumber(workBook, row + (sheetType == 2 ? 5 : 14), 4, row + (sheetType == 2 ? 5 : 14), 4 + j);
+						}
+
+					}
+					if (supplierId.equals(Util.ALCATEL_TYPE)) {
+
+						SmartUtil.setNumber(workBook, row + (sheetType == 2 ? 3 : 8), colEnd + 1, Util.getAverageStringNumber(vtRow));
+						SmartUtil.setStyleNumber(workBook, row + (sheetType == 2 ? 3 : 8), colEnd + 1, row + (sheetType == 2 ? 3 : 8), colEnd + 1);
+
+					} else {
+
+						SmartUtil.setNumber(workBook, row + (sheetType == 2 ? 5 : 14), colEnd + 1, Util.getAverageStringNumber(vtRow));
+						SmartUtil.setStyleNumber(workBook, row + (sheetType == 2 ? 5 : 14), colEnd + 1, row + (sheetType == 2 ? 5 : 14), colEnd + 1);
+
+					}
+				}
+			}
+		}
 	}
 
 	/**
@@ -428,6 +703,7 @@ public class Pms3GWeeklyReport {
 				vt.addElement(rsStatic.getString("supplier_id"));
 				vtDataStatic.add(vt);
 			}
+
 		} finally {
 			Database.closeObject(rsPerHour);
 			Database.closeObject(psmtPerHour);
@@ -440,7 +716,6 @@ public class Pms3GWeeklyReport {
 	}
 
 	/**
-	 * 
 	 * @param vt
 	 * @param rs
 	 * @param vstrWeek

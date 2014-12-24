@@ -181,6 +181,7 @@ public class SmartUtil {
 		rangeStyle.setFontName("Times New Roman");
 		rangeStyle.setFontSize(9 * 20);
 		rangeStyle.setHorizontalAlignment(RangeStyle.HorizontalAlignmentLeft);
+		rangeStyle.setVerticalAlignment(RangeStyle.VerticalAlignmentCenter);
 		workBook.setRangeStyle(rangeStyle, start_x, start_y, end_x, end_y);// set format for range B2:C3
 	}
 
