@@ -10,6 +10,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 import com.fis.report.common.SmartUtil;
@@ -37,8 +39,14 @@ public class Pms3GWeeklyReport {
 	protected Vector<Vector<String>> vtDataPerHour = new Vector<Vector<String>>();
 	protected Vector<Vector<String>> vtDataStatic = new Vector<Vector<String>>();
 	protected Vector<Vector<String>> vtDataWeek = new Vector<Vector<String>>();
+	protected Vector<Vector<String>> vtDataArea = new Vector<Vector<String>>();
+	protected Vector<Vector<String>> vtDataAreaCells = new Vector<Vector<String>>();
+	protected Vector<Vector<String>> vtDataAreaNodeb = new Vector<Vector<String>>();
+	protected Map<String, Vector<String>> kpiMap = new HashMap<String, Vector<String>>();
+
 	private int colEnd;
 	private int rowStartSecondTable;
+	private int rowStartThirdTable;
 	private String[] arrCriteria1 = new String[] { "Number of Cells", "Target", "KPI average", "Critical : (<=90%)", "Major   : (90-95%)", "Minor   : (95-98%)", "Normal : (98-100%)" };
 	private String[] arrCriteria2 = new String[] { "Number of Cells", "Target", "KPI average", "Critical : (>=15%)", "Major   : (10-15%)", "Minor   : (5-10%)", "Normal : (0-5%)" };
 	private String[] arrCriteria3 = new String[] { "Number of Cells", "KPI average" };
@@ -161,6 +169,7 @@ public class Pms3GWeeklyReport {
 		workBook.setSheet(sheetNumber);
 		initFirstTable(workBook, sheetType, sheetNumber);
 		initSecondTable(workBook, sheetType, sheetNumber);
+		initThirdTable(workBook, sheetType, sheetNumber);
 		workBook.setColHidden(colEnd + 2, true);
 		workBook.setColHidden(colEnd + 3, true);
 
@@ -254,16 +263,18 @@ public class Pms3GWeeklyReport {
 				workBook.setText(row, 1, ReportConfig.mapKpiName.get(kpiCode));
 				workBook.setText(row, 2, "All Network");
 				SmartUtil.setStyleString(workBook, row, 1, row, 2);
+				Vector<String> kpiValue = new Vector<String>();
 				for (int j = 0; j < vtRow.size() - 2; j++) {
 					SmartUtil.setNumber(workBook, row, 4 + j, (String) vtRow.get(j));
 					SmartUtil.setStyleNumber(workBook, row, 4, row, 4 + j);
+					kpiValue.add(vtRow.get(j));
 				}
+				kpiMap.put(kpiCode, kpiValue);
 				SmartUtil.setNumber(workBook, row, colEnd + 1, Util.getAverageStringNumber(vtRow));
 				SmartUtil.setStyleNumber(workBook, row, colEnd + 1, row, colEnd + 1);
 				SmartUtil.addSeries(allChart, ReportConfig.mapKpiName.get(kpiCode), SmartUtil.getFormula(workBook.getSheetName(sheetNumber), row + 1, 4, row + 1, colEnd), allNumberSeries++);
 
 			}
-
 		}
 
 		for (int i = 0; i < vtDataStatic.size(); i++) {
@@ -320,9 +331,7 @@ public class Pms3GWeeklyReport {
 	private void initSecondTable(WorkBook workBook, int sheetType, int sheetNumber) throws Exception {
 
 		workBook.setText(rowStartSecondTable - 2, 0, "III. Weekly KPI statistics");
-		RangeStyle rangeStyle = workBook.getRangeStyle(rowStartSecondTable - 2, 0, rowStartSecondTable - 2, 0);
-		SmartUtil.adjustFont(rangeStyle, 0, true, false, false);
-		workBook.setRangeStyle(rangeStyle, rowStartSecondTable - 2, 0, rowStartSecondTable - 2, 0);
+		SmartUtil.adjustFont(workBook, 0, true, false, false, rowStartSecondTable - 2, 0, rowStartSecondTable - 2, 0);
 
 		Util.putPosition(ReportConfig.lstReportKpi, sheetType, rowStartSecondTable + 1, sheetType == 2 ? 6 : 19);
 		// SmartUtil.mergeCells(workBook, Util.ROW_AVG_START - 1, 1, Util.ROW_AVG_START - 1, 2, true);
@@ -357,7 +366,7 @@ public class Pms3GWeeklyReport {
 				SmartUtil.setStyleString(workBook, row, 2, row + (sheetType == 2 ? 1 : 6), 2);
 
 				if (sheetType != 2) {
-					workBook.setRowOutlineLevel(row + 3, row + 18, 1, true);
+					workBook.setRowOutlineLevel(row + 3, row + 18, 1, false);
 				}
 				if (sheetType == 1 && Float.parseFloat(vtRow.get(0)) > 90) {
 
@@ -580,9 +589,126 @@ public class Pms3GWeeklyReport {
 						SmartUtil.setStyleNumber(workBook, row + (sheetType == 2 ? 5 : 14), colEnd + 1, row + (sheetType == 2 ? 5 : 14), colEnd + 1);
 
 					}
+
+					rowStartThirdTable = row + (sheetType == 2 ? 9 : 22);
 				}
 			}
 		}
+	}
+
+	/**
+	 * 
+	 * @param workBook
+	 * @param sheetType
+	 * @throws Exception
+	 */
+	private void initThirdTable(WorkBook workBook, int sheetType, int sheetNumber) throws Exception {
+
+		workBook.setText(rowStartThirdTable - 2, 0, "IV. Weekly average KPI per zone/area");
+		SmartUtil.adjustFont(workBook, 0, true, false, false, rowStartThirdTable - 2, 0, rowStartThirdTable - 2, 0);
+
+		Util.putPosition(ReportConfig.lstReportKpi, sheetType, rowStartThirdTable + 24, 23);
+		// SmartUtil.mergeCells(workBook, Util.ROW_AVG_START - 1, 1, Util.ROW_AVG_START - 1, 2, true);
+		workBook.setText(rowStartThirdTable, 1, "KPI Name");
+		workBook.setText(rowStartThirdTable, 2, "Center");
+		workBook.setText(rowStartThirdTable, 3, "Province");
+		getColHeaderEnd(workBook, rowStartThirdTable, 4, strWeek, strDate);
+		workBook.setText(rowStartThirdTable, colEnd + 1, "Weekly average");
+		SmartUtil.setDefaultStyle(workBook, rowStartThirdTable, 1, rowStartThirdTable, colEnd + 1);
+		SmartUtil.fillColorPatten(workBook, rowStartThirdTable, 1, rowStartThirdTable, colEnd + 1, Color.LIGHT_GRAY.getRGB());
+		fillDataForThirdTable(workBook, sheetType, sheetNumber);
+
+		SmartUtil.setFullBorder(workBook, rowStartThirdTable, 1, rowStartThirdTable + 23 * (ReportConfig.getNumOfKPI(sheetType) + 1), colEnd + 1, RangeStyle.BorderThin);
+		workBook.setSelection(rowStartThirdTable, 1, rowStartThirdTable, colEnd + 1);
+		workBook.autoFilter();
+	}
+
+	private void fillDataForThirdTable(WorkBook workBook, int sheetType, int sheetNumber) throws Exception {
+
+		Vector<Vector<String>> dataAreaHeader = new Vector<Vector<String>>();
+		dataAreaHeader.addAll(sheetType == 3 ? vtDataAreaNodeb : vtDataAreaCells);
+		Integer row = rowStartThirdTable + 1;
+		workBook.setRowOutlineLevel(row + 1, row + 22, 1, false);
+		SmartUtil.setStyleString(workBook, row, 1, row + 22, 3);
+		SmartUtil.alignCenter(workBook, row, 2, row + 22, 3);
+		SmartUtil.setStyleNumber(workBook, row, 4, row + 22, colEnd + 1);
+		for (int i = 0; i < dataAreaHeader.size(); i++) {
+
+			Vector<String> vtRow = (Vector<String>) dataAreaHeader.get(i);
+
+			workBook.setText(row, 1, vtRow.get(vtRow.size() - 5));
+			SmartUtil.mergeCells(workBook, row, 1, row + 22, 1, true);
+
+			workBook.setText(row, 2, "All Network");
+			SmartUtil.mergeCells(workBook, row, 2, row, 3, true);
+
+			if (vtRow.get(vtRow.size() - 1).equals("2")) {
+
+				workBook.setText(row + i + 1, 2, vtRow.get(vtRow.size() - 2));
+				SmartUtil.mergeCells(workBook, row + i + 1, 2, row + i + 1, 3, vtRow.get(vtRow.size() - 1).equals("2"));
+			} else {
+
+				workBook.setText(row + i + 1, 2, vtRow.get(vtRow.size() - 4));
+				workBook.setText(row + i + 1, 3, vtRow.get(vtRow.size() - 3));
+			}
+
+			for (int j = 0; j < vtRow.size() - 5; j++) {
+
+				workBook.setFormula(row, 4 + j,
+				        "SUMIF(" + workBook.formatRCNr(row + 1, colEnd + 2, true) + ":" + workBook.formatRCNr(row + 22, colEnd + 2, true) + ",\"2\"," + workBook.formatRCNr(row + 1, 4 + j, false)
+				                + ":" + workBook.formatRCNr(row + 22, 4 + j, false) + ")");
+				SmartUtil.setNumber(workBook, row + i + 1, 4 + j, (String) vtRow.get(j));
+			}
+
+			workBook.setFormula(row, colEnd + 1, "MAX(" + workBook.formatRCNr(row, 4, false) + ":" + workBook.formatRCNr(row, colEnd, false) + ")");
+			workBook.setFormula(row + i + 1, colEnd + 1, "MAX(" + workBook.formatRCNr(row + i + 1, 4, false) + ":" + workBook.formatRCNr(row + i + 1, colEnd, false) + ")");
+			SmartUtil.setNumber(workBook, row + i + 1, colEnd + 2, vtRow.get(vtRow.size() - 1));
+
+		}
+
+		int count = 0;
+		for (int i = 0; i < vtDataArea.size(); i++) {
+
+			count = count == 22 ? 0 : count;
+			Vector<String> vtRow = (Vector<String>) vtDataArea.get(i);
+			String kpiCode = (String) vtRow.get(vtRow.size() - 5);
+			row = Util.getPosition(kpiCode, sheetType);
+			if (row != null) {
+
+				workBook.setRowOutlineLevel(row + 1, row + 22, 1, false);
+
+				SmartUtil.setStyleString(workBook, row, 1, row + 22, 3);
+				SmartUtil.alignCenter(workBook, row, 2, row + 22, 3);
+				SmartUtil.setStyleNumber(workBook, row, 4, row + 22, colEnd + 1);
+
+				workBook.setText(row, 1, ReportConfig.mapKpiName.get(kpiCode));
+				SmartUtil.mergeCells(workBook, row, 1, row + 22, 1, true);
+
+				workBook.setText(row, 2, "All Network");
+				SmartUtil.mergeCells(workBook, row, 2, row, 3, true);
+				workBook.setFormula(row, colEnd + 1, "MAX(" + workBook.formatRCNr(row, 4, false) + ":" + workBook.formatRCNr(row, colEnd, false) + ")");
+
+				for (int j = 0; j < vtRow.size() - 5; j++) {
+					SmartUtil.setNumber(workBook, row, 4 + j, kpiMap.get(kpiCode).get(j));
+					SmartUtil.setNumber(workBook, row + count + 1, 4 + j, (String) vtRow.get(j));
+				}
+
+				if (vtRow.get(vtRow.size() - 1).equals("2")) {
+
+					workBook.setText(row + count + 1, 2, vtRow.get(vtRow.size() - 2));
+					SmartUtil.mergeCells(workBook, row + count + 1, 2, row + count + 1, 3, vtRow.get(vtRow.size() - 1).equals("2"));
+				} else {
+
+					workBook.setText(row + count + 1, 2, vtRow.get(vtRow.size() - 4));
+					workBook.setText(row + count + 1, 3, vtRow.get(vtRow.size() - 3));
+				}
+				workBook.setFormula(row + count + 1, colEnd + 1, "MAX(" + workBook.formatRCNr(row + count + 1, 4, false) + ":" + workBook.formatRCNr(row + count + 1, colEnd, false) + ")");
+				SmartUtil.setNumber(workBook, row + count + 1, colEnd + 2, vtRow.get(vtRow.size() - 1));
+
+				count++;
+			}
+		}
+
 	}
 
 	/**
@@ -629,7 +755,6 @@ public class Pms3GWeeklyReport {
 	}
 
 	/**
-	 * 
 	 * @param vstrWeek
 	 * @param vstrStartDate
 	 * @throws Exception
@@ -642,6 +767,9 @@ public class Pms3GWeeklyReport {
 		ResultSet rsStatic = null;
 		PreparedStatement psmtAvgWeek = null;
 		ResultSet rsAvgWeek = null;
+		PreparedStatement psmtArea = null;
+		ResultSet rsArea = null;
+
 		try {
 			// ===================================================================
 			// Get data I.1: Per hour
@@ -702,6 +830,62 @@ public class Pms3GWeeklyReport {
 				vt.addElement(rsStatic.getString("kpi_code"));
 				vt.addElement(rsStatic.getString("supplier_id"));
 				vtDataStatic.add(vt);
+			}
+
+			// Get Data I.3: tinh theo Area code
+
+			String sqlDataArea = "SELECT * FROM (SELECT network_id, area_code, (select name from area where area_code = pms.area_code) area_name, kpi_code, avg(value) ave, center_code, center_type, to_char(event_time, 'dd') date_time "
+			        + " FROM pms_daily_by_area pms WHERE event_time >= to_date (?, 'dd/MM/yyyy') ";
+
+			if (vstrWeek.equals(Util.WEEK_4))
+				sqlDataArea += "and event_time < last_day(to_date(?,'dd/MM/yyyy')) + 1";
+			else
+				sqlDataArea += "and event_time < to_date(?,'dd/MM/yyyy') + 7";
+
+			sqlDataArea += " AND network_id = 9 AND (area_code <> 'UNIDENTIFIED' OR area_code is null) GROUP BY pms.network_id, pms.event_time, pms.area_code, pms.kpi_code, pms.center_code, pms.center_type) "
+			        + "PIVOT (SUM (ave) FOR (date_time) IN (" + getListDays(vstrWeek) + ")) " + " ORDER BY kpi_code, center_code, area_name ";
+
+			psmtArea = mcnMain.prepareStatement(sqlDataArea);
+			psmtArea.setString(1, vstrStartDate);
+			psmtArea.setString(2, vstrStartDate);
+			rsArea = psmtArea.executeQuery();
+
+			while (rsArea.next()) {
+
+				Vector<String> vt = new Vector<String>();
+				Vector<String> vtCells = new Vector<String>();
+				Vector<String> vtNodeb = new Vector<String>();
+
+				if (rsArea.getString("kpi_code").equalsIgnoreCase("CELLS")) {
+
+					addElement(vtCells, rsArea, vstrWeek);
+					vtCells.addElement("Total Cells");
+					vtCells.addElement(rsArea.getString("area_code"));
+					vtCells.addElement(rsArea.getString("area_name"));
+					vtCells.addElement(rsArea.getString("center_code"));
+					vtCells.addElement(rsArea.getString("center_type"));
+					vtDataAreaCells.add(vtCells);
+
+				} else if (rsArea.getString("kpi_code").equalsIgnoreCase("NODE B")) {
+
+					addElement(vtNodeb, rsArea, vstrWeek);
+					vtNodeb.addElement("Number of Node B");
+					vtNodeb.addElement(rsArea.getString("area_code"));
+					vtNodeb.addElement(rsArea.getString("area_name"));
+					vtNodeb.addElement(rsArea.getString("center_code"));
+					vtNodeb.addElement(rsArea.getString("center_type"));
+					vtDataAreaNodeb.add(vtNodeb);
+
+				} else {
+
+					addElement(vt, rsArea, vstrWeek);
+					vt.addElement(rsArea.getString("kpi_code"));
+					vt.addElement(rsArea.getString("area_code"));
+					vt.addElement(rsArea.getString("area_name"));
+					vt.addElement(rsArea.getString("center_code"));
+					vt.addElement(rsArea.getString("center_type"));
+					vtDataArea.add(vt);
+				}
 			}
 
 		} finally {

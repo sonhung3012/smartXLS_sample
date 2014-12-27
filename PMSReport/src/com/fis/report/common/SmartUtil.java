@@ -126,25 +126,24 @@ public class SmartUtil {
 		workBook.setRangeStyle(rangeStyle, start_x, start_y, end_x, end_y);// set format for range B2:C3
 	}
 
-	public static void adjustFont(RangeStyle rangeStyle, int color, boolean bold, boolean italic, boolean underline) {
+	public static void adjustFont(WorkBook workBook, int color, boolean bold, boolean italic, boolean underline, int start_x, int start_y, int end_x, int end_y) throws Exception {
 
+		RangeStyle rangeStyle = workBook.getRangeStyle(start_x, start_y, end_x, end_y);
 		rangeStyle.setFontBold(bold);
 		rangeStyle.setFontItalic(italic);
 		if (underline) {
 			rangeStyle.setFontUnderline(RangeStyle.UnderlineSingle);
 		}
 		rangeStyle.setFontColor(color);
+		workBook.setRangeStyle(rangeStyle, start_x, start_y, end_x, end_y);
 	}
 
-	public static void paintBorder(WorkBook workBook, int start_x, int start_y, int end_x, int end_y) throws Exception {
+	public static void alignCenter(WorkBook workBook, int start_x, int start_y, int end_x, int end_y) throws Exception {
 
 		RangeStyle rangeStyle = workBook.getRangeStyle(start_x, start_y, end_x, end_y);
-		rangeStyle.setTopBorder(RangeStyle.BorderThin);
-		rangeStyle.setBottomBorder(RangeStyle.BorderThin);
-		rangeStyle.setLeftBorder(RangeStyle.BorderThin);
-		rangeStyle.setRightBorder(RangeStyle.BorderThin);
+		rangeStyle.setHorizontalAlignment(RangeStyle.HorizontalAlignmentCenter);
+		rangeStyle.setVerticalAlignment(RangeStyle.VerticalAlignmentCenter);
 		workBook.setRangeStyle(rangeStyle, start_x, start_y, end_x, end_y);
-
 	}
 
 	/**
@@ -200,7 +199,19 @@ public class SmartUtil {
 		rangeStyle.setFontName("Times New Roman");
 		rangeStyle.setFontSize(9 * 20);
 		rangeStyle.setHorizontalAlignment(RangeStyle.HorizontalAlignmentRight);
-		rangeStyle.setCustomFormat("0.00");
+
+		for (int i = start_x; i <= end_x; i++) {
+
+			for (int j = start_y; j < end_y; j++) {
+
+				if (workBook.getText(i, j).contains(".")) {
+
+					rangeStyle.setCustomFormat("0.00");
+					break;
+				}
+			}
+		}
+
 		workBook.setRangeStyle(rangeStyle, start_x, start_y, end_x, end_y);// set format for range B2:C3
 	}
 
